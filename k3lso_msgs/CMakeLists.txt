@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MotorsCommand.msg"
   "srv/MotorsStep.srv"
   "srv/MotorsSetTorque.srv"
+  "srv/MotorsTest.srv"
   DEPENDENCIES std_msgs sensor_msgs
  )
 

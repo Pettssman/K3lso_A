@@ -6,6 +6,7 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/int32_multi_array.hpp"
 #include "k3lso_msgs/srv/motors_set_torque.hpp"
+#include "k3lso_msgs/srv/motors_test.hpp"
 
 #include "moteus_pcan/moteus_pcan_controller.h"
 
@@ -140,6 +141,19 @@ void set_torque_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsSetTorque:
     response->error = 0;
 }
 
+void test_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsTest::Request> request,
+          std::shared_ptr<k3lso_msgs::srv::MotorsTest::Response> response)
+{
+
+  for(size_t i=0; i<request->ids.size(); i++){
+       auto id = request->ids[i];
+       auto position = request->position[i];
+       auto velocity = request->velocity[i];
+            controller._motors[id]->set_torque_ena(true);
+            controller._motors[id]->set_commands(position, velocity);
+   }
+}
+
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
@@ -157,6 +171,8 @@ int main(int argc, char **argv)
     timer_freqs = node->create_wall_timer(1s, &timer_freqs_callback);
     rclcpp::Service<k3lso_msgs::srv::MotorsSetTorque>::SharedPtr torque_service = 
                         node->create_service<k3lso_msgs::srv::MotorsSetTorque>("/k3lso_moteus/set_torque", &set_torque_callback);
+    rclcpp::Service<k3lso_msgs::srv::MotorsTest>::SharedPtr test_service =                       
+    			 node->create_service<k3lso_msgs::srv::MotorsTest>("/k3lso_moteus/motors_test", &test_callback);
 
     RCLCPP_INFO(node->get_logger(), "Node running.");
     controller.start();
