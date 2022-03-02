@@ -28,7 +28,7 @@ std::vector<MotorInfo> motors_info = {
     // Front Left
     {"torso_to_abduct_fl_j",    "/dev/pcan-pcie_fd/devid=20", 4,  -0.00, true}, // Hip
     {"abduct_fl_to_thigh_fl_j", "/dev/pcan-pcie_fd/devid=10", 5,  0.92, false}, // Leg
-    {"thigh_fl_to_knee_fl_j",   "/dev/pcan-pcie_fd/devid=13", 6,  -1.483529864, false}, // Low Leg
+    {"thigh_fl_to_knee_fl_j",   "/dev/pcan-pcie_fd/devid=10", 6,  -1.483529864, false}, // Low Leg OBS!!!! Ändrat devid till 10 och kopplat in en CAN sladd från ID5 till ID6
     // Rear Right
     {"torso_to_abduct_hr_j",    "/dev/pcan-pcie_fd/devid=19", 10, -0.00, false}, // Hip
     {"abduct_hr_to_thigh_hr_j", "/dev/pcan-pcie_fd/devid=15", 11, 1.047197551, true}, // Leg
@@ -148,9 +148,8 @@ void test_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsTest::Request> r
   for(size_t i=0; i<request->ids.size(); i++){
        auto id = request->ids[i];
        auto position = request->position[i];
-       auto velocity = request->velocity[i];
             controller._motors[id]->set_torque_ena(true);
-            controller._motors[id]->set_commands(position, velocity);
+            controller._motors[id]->set_commands(position);
    }
 }
 
