@@ -28,7 +28,7 @@ std::vector<MotorInfo> motors_info = {
     // Front Left
     {"torso_to_abduct_fl_j",    "/dev/pcan-pcie_fd/devid=20", 4,  -0.00, true}, // Hip
     {"abduct_fl_to_thigh_fl_j", "/dev/pcan-pcie_fd/devid=10", 5,  0.92, false}, // Leg
-    {"thigh_fl_to_knee_fl_j",   "/dev/pcan-pcie_fd/devid=10", 6,  -1.483529864, false}, // Low Leg OBS!!!! Ändrat devid till 10 och kopplat in en CAN sladd från ID5 till ID6
+    {"thigh_fl_to_knee_fl_j",   "/dev/pcan-pcie_fd/devid=10", 6,  -1.483529864, false}, // Low Leg ATTN!!!! Changed Devid on ID6 to the same of ID5 and connected the moteus cards via CAN cable 
     // Rear Right
     {"torso_to_abduct_hr_j",    "/dev/pcan-pcie_fd/devid=19", 10, -0.00, false}, // Hip
     {"abduct_hr_to_thigh_hr_j", "/dev/pcan-pcie_fd/devid=15", 11, 1.047197551, true}, // Leg
@@ -44,8 +44,7 @@ MoteusInterfaceMotorsMap interface_motors_map = {
     {"/dev/pcan-pcie_fd/devid=12", {2}}, // Leg FR
     {"/dev/pcan-pcie_fd/devid=11", {3}}, // Low Leg FR
     {"/dev/pcan-pcie_fd/devid=20", {4}}, // Hip FL
-    {"/dev/pcan-pcie_fd/devid=10", {5}}, // Leg FL
-    {"/dev/pcan-pcie_fd/devid=13", {6}}, // Low Leg FL
+    {"/dev/pcan-pcie_fd/devid=10", {5,6}}, // Leg FL and Low Leg FL DAISY CHAIN!
     {"/dev/pcan-pcie_fd/devid=19", {10}}, // Hip RR
     {"/dev/pcan-pcie_fd/devid=15", {11}}, // Leg RR
     {"/dev/pcan-pcie_fd/devid=17", {12}}, // Low Leg RR
@@ -71,10 +70,11 @@ void timer_joint_states_callback(){
         int motor_id = motor_info.can_id;
         float pos, vel, tor;
         controller._motors[motor_id]->get_feedback(pos, vel, tor);
+        double position = (int)(pos*10000.0)/10000.0; // Round to 4 decimals for easier readability
         if(!motor_info.invert){
-            msg.position.push_back((-6.28319*pos) - motor_info.offset);
+            msg.position.push_back((-position)); // -6.28319*pos - motor_info.offset
         }else{
-            msg.position.push_back((6.28319*pos) - motor_info.offset);
+            msg.position.push_back((position)); // 6.28319*pos - motor_info.offset
         }
         msg.velocity.push_back(vel);
         msg.effort.push_back(tor);
@@ -147,7 +147,7 @@ void test_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsTest::Request> r
 
   for(size_t i=0; i<request->ids.size(); i++){
        auto id = request->ids[i];
-       auto position = request->position[i];
+       auto position = request->position[i]/6.28319; // Delat på 2*pi
             controller._motors[id]->set_torque_ena(true);
             controller._motors[id]->set_commands(position);
    }
