@@ -21,6 +21,7 @@ public:
     void set_commands(float position);
     void get_feedback(float& position, float& velocity, float& torque);
     void set_torque_ena(bool torque_ena_);
+    bool _torque_ena; // THIS IS MOVED FROM PRIVATE TO BE ACCESSED IN k3lso_moteus_node
 private:
     // CAN
     uint32_t _id;
@@ -30,7 +31,7 @@ private:
     CANDevice::CAN_msg_t _msg_rx;
     // Registers
     std::mutex _torque_ena_mutex;
-    bool _torque_ena;
+    //bool _torque_ena;
     std::mutex _command_mutex;
     float _comm_position;
     float _comm_velocity;
