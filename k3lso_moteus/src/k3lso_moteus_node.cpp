@@ -3,6 +3,8 @@
 #include <sstream>
 #include <unistd.h>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
@@ -173,7 +175,8 @@ void test_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsTest::Request> r
     //std::cout<<"hej1"<< std::endl;
 
     while(!allDone){ // THIS IS NOT SOLVED YET!!!!!!!!!!!!!!!
-        sleep(sleeptime); // IS THIS RIGHT??? Time between different positions
+        //sleep(sleeptime); // IS THIS RIGHT??? Time between different positions
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleeptime));
         count++;
         
         if(count == 10000){ // To not get stuck in loop 
