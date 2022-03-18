@@ -49,9 +49,9 @@ MoteusPcanMotor::MoteusPcanMotor(uint32_t id, PCANDevice* can_device_ptr)
     _comm_position = 0.0;
     _comm_velocity = 0.0;
     _comm_fftorque = 0.0;
-    _comm_kp_scale = 50.0;
-    _comm_kd_scale = 5.0;
-    _comm_maxtorqu = 2.0;
+    _comm_kp_scale = 10;
+    _comm_kd_scale = 50.0;
+    _comm_maxtorqu = 12;
 }
 
 MoteusPcanMotor::~MoteusPcanMotor(){}
