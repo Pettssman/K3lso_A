@@ -33,17 +33,17 @@ std::vector<MotorInfo> motors_info = {      // Define motor_info struct
     {"thigh_fr_to_knee_fr_j",   "/dev/pcan-pcie_fd/devid=11", 3,  -1.483529864, true}, // Low Leg
     // Front Left
     {"torso_to_abduct_fl_j",    "/dev/pcan-pcie_fd/devid=20", 4,  -0.00, true}, // Hip
-    {"abduct_fl_to_thigh_fl_j", "/dev/pcan-pcie_fd/devid=10", 5,  0.92, false}, // Leg
-    {"thigh_fl_to_knee_fl_j",   "/dev/pcan-pcie_fd/devid=10", 6,  -1.483529864, false}, // Low Leg ATTN!!!! Changed Devid on ID6 to the same of ID5 and connected the moteus cards via CAN cable 
+    {"abduct_fl_to_thigh_fl_j", "/dev/pcan-pcie_fd/devid=10", 6, 0.92, false}, // Leg
+    {"thigh_fl_to_knee_fl_j",   "/dev/pcan-pcie_fd/devid=10", 5, -1.483529864, false}, // Low Leg ATTN!!!! Changed Devid on ID6 to the same of ID5 and connected the moteus cards via CAN cable 
     // Rear Right
-    {"torso_to_abduct_hr_j",    "/dev/pcan-pcie_fd/devid=19", 10, -0.00, false}, // Hip
+    {"torso_to_abduct_hr_j",    "/dev/pcan-pcie_fd/devid=17", 12, -0.00, false}, // Hip
     {"abduct_hr_to_thigh_hr_j", "/dev/pcan-pcie_fd/devid=15", 11, 1.047197551, true}, // Leg 1.047197551
     
-    {"thigh_hr_to_knee_hr_j",   "/dev/pcan-pcie_fd/devid=17", 12, -1.483529864, true}, // Low Leg
+    {"thigh_hr_to_knee_hr_j",   "/dev/pcan-pcie_fd/devid=17", 10, -1.483529864, true}, // Low Leg
     // Rear Left
-    {"torso_to_abduct_hl_j",    "/dev/pcan-pcie_fd/devid=21", 7,  -0.00, false}, // Hip
+    {"torso_to_abduct_hl_j",    "/dev/pcan-pcie_fd/devid=16", 9,  -0.00, false}, // Hip
     {"abduct_hl_to_thigh_hl_j", "/dev/pcan-pcie_fd/devid=14", 8,  1.047197551, false}, // Leg
-    {"thigh_hl_to_knee_hl_j",   "/dev/pcan-pcie_fd/devid=16", 9,  -1.483529864, false}  // Low Leg
+    {"thigh_hl_to_knee_hl_j",   "/dev/pcan-pcie_fd/devid=16", 7,  -1.483529864, false}  // Low Leg
 };
 
 MoteusInterfaceMotorsMap interface_motors_map = {       // Assign CAN to motor_ID
@@ -52,12 +52,10 @@ MoteusInterfaceMotorsMap interface_motors_map = {       // Assign CAN to motor_I
     {"/dev/pcan-pcie_fd/devid=11", {3}}, // Low Leg FR
     {"/dev/pcan-pcie_fd/devid=20", {4}}, // Hip FL
     {"/dev/pcan-pcie_fd/devid=10", {5,6}}, // Leg FL and Low Leg FL DAISY CHAIN!
-    {"/dev/pcan-pcie_fd/devid=19", {10}}, // Hip RR
     {"/dev/pcan-pcie_fd/devid=15", {11}}, // Leg RR
-    {"/dev/pcan-pcie_fd/devid=17", {12}}, // Low Leg RR
-    {"/dev/pcan-pcie_fd/devid=21", {7}}, // Hip RL
+    {"/dev/pcan-pcie_fd/devid=17", {10,12}}, // Hip RR and Low Leg RR
     {"/dev/pcan-pcie_fd/devid=14", {8}}, // Leg RL
-    {"/dev/pcan-pcie_fd/devid=16", {9}}  // Low Leg RL
+    {"/dev/pcan-pcie_fd/devid=16", {7,9}}  // Hip RL and Low Leg RL
 };
 
 MoteusPcanController controller(interface_motors_map);      // Create object of MoteusPcanController
@@ -69,7 +67,7 @@ rclcpp::TimerBase::SharedPtr timer_joint_states;                                
 rclcpp::TimerBase::SharedPtr timer_freqs;                                               // Create callback timer for freqs
 rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr publisher_joint_states;      // Create publisher for Joint_states
 rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr publisher_freqs;           // Create publisher for freq
-//rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscriber_pose;      // Create subscriber node for Pose
+rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscriber_pose;      // Create subscriber node for Pose
 
 void timer_joint_states_callback(){
     sensor_msgs::msg::JointState msg;
@@ -78,11 +76,13 @@ void timer_joint_states_callback(){
         int motor_id = motor_info.can_id;
         float pos, vel, tor;
         controller._motors[motor_id]->get_feedback(pos, vel, tor);
-        double position = (int)(pos*10000.0)/10000.0; // Round to 4 decimals for easier readability
+        //double position = (int)(pos*10000.0)/10000.0; // Round to 4 decimals for easier readability
+        sleep(0.34533245);
+        std::cout<<motor_id <<": " << pos<< std::endl;
         if(!motor_info.invert){
-            msg.position.push_back((-position)); // -6.28319*pos - motor_info.offset
+            msg.position.push_back((-6.28319*pos - motor_info.offset)); // -position
         }else{
-            msg.position.push_back((position)); // 6.28319*pos - motor_info.offset
+            msg.position.push_back((6.28319*pos - motor_info.offset)); // position
         }
         msg.velocity.push_back(vel);
         msg.effort.push_back(tor);
@@ -153,74 +153,25 @@ void set_torque_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsSetTorque:
 void test_callback(const std::shared_ptr<k3lso_msgs::srv::MotorsTest::Request> request,
           std::shared_ptr<k3lso_msgs::srv::MotorsTest::Response> response)
 {
-    std::vector<float> act_positions (12);
-    std::vector<float> goal_positions (12);
-    float act_pos, act_vel, act_tor, position, tolerance, step, sleeptime;
-    int count = 0;
-    bool done[12];
-    bool allDone = false;
-    
-    step = 0.001;
-    sleeptime = 0.1;
-    tolerance = 0.001;
-
-    // Set torque true if not true, divide positions by 2*Pi
-    for(size_t i=0; i < request->ids.size(); i++){
-        auto id = request->ids[i];
-        goal_positions[i] = (request->position[i])/6.28319; // Divide by 2*Pi
-        if(controller._motors[id]->_torque_ena != true){
-            controller._motors[id]->set_torque_ena(true); // Enable torque
-        }
-    }
-    //std::cout<<"hej1"<< std::endl;
-
-    while(!allDone){ // THIS IS NOT SOLVED YET!!!!!!!!!!!!!!!
-        //sleep(sleeptime); // IS THIS RIGHT??? Time between different positions
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleeptime));
-        count++;
-        
-        if(count == 10000){ // To not get stuck in loop 
-            std::cout<<"break"<< std::endl;
-            break;
-        }
- 
-        for(size_t i=0; i < request->ids.size(); i++){ // for every id
-            auto id = request->ids[i];
-            controller._motors[id]->get_feedback(act_pos,act_vel,act_tor); // Returns actual position in moteus rotations
-            std::cout<<act_pos<< std::endl;
-            
- 
-            if(abs(act_pos-goal_positions[i]) <= tolerance){ // Check if position close enough to goal position
-            	std::cout<<"done"<< std::endl;
-                done[i] = true; 
-                continue;
-            }
-            std::cout<<goal_positions[i]<< std::endl;
-            if(act_pos < goal_positions[i]){ // Check if goal is bigger or smaller than zero to go to the right direction
-                position = act_pos + step;
-            }else{
-                position = act_pos - step;
-            }
-            std::cout<<position<< std::endl;
-            std::cout<<id<< std::endl;
-            controller._motors[id]->set_commands(position); // Set new position with extrastep
-        }
-
-        // it is a WORKING!!!!
-        if(std::all_of(std::begin(done), std::end(done), [](bool k){ return k; } )) {
-            allDone = true;
-        }
-    }
+	for(size_t i=0; i<request->ids.size(); i++){
+       	auto id = request->ids[i];
+       	auto position = request->position[i]/6.28319; // Delat på 2*pi
+            	//controller._motors[id]->set_torque_ena(true);
+            	controller._motors[id]->set_commands(position);
+   }
 }
         // Callback for pose subscriber to set positions from th controller to all motors
-//void subscriber_callback(const std_msgs::msg::Float32MultiArray msg){ 
-  //for(int i=1; i <= 12; i++){
-    //    auto id = i;
-      //  auto position = msg.data[i];
-        // controller._motors[id]->set_torque_ena(true); Need to activate torque before running subscriber
-       // controller._motors[id]->set_commands(position);
-    //}
-//}
+void subcallback(std_msgs::msg::Float32MultiArray::SharedPtr msg){
+  for(int i=1; i <= 12; i++){
+        auto id = i;
+        auto position = msg->data[i-1];
+        
+        //std::cout<<id <<": " << position<< std::endl;
+         //controller._motors[id]->set_torque_ena(true); //Need to activate torque before running subscriber
+        controller._motors[id]->set_commands(position);
+   }
+}
+
 
 int main(int argc, char **argv)
 {
@@ -237,9 +188,9 @@ int main(int argc, char **argv)
     publisher_joint_states = node->create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
     publisher_freqs = node->create_publisher<std_msgs::msg::Int32MultiArray>("/moteus/freqs", 1);
     // SUBSCRIBERS
-    //subscriber_pose = node->create_subscription<std_msgs::msg::Float32MultiArray>("/pose",10, &subscriber_callback); // Define what topic and callback to run
+    subscriber_pose = node->create_subscription<std_msgs::msg::Float32MultiArray>("/pose",10,&subcallback); // Define what topic and callback to run
     // TIMERS
-    timer_joint_states = node->create_wall_timer(20ms, &timer_joint_states_callback);
+    timer_joint_states = node->create_wall_timer(4.7ms, &timer_joint_states_callback);
     timer_freqs = node->create_wall_timer(1s, &timer_freqs_callback);
     // SERVICES
     rclcpp::Service<k3lso_msgs::srv::MotorsSetTorque>::SharedPtr torque_service = 
