@@ -19,6 +19,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/MotorsStep.srv"
   "srv/MotorsSetTorque.srv"
   "srv/MotorsTest.srv"
+  "srv/BezierTest.srv"
   DEPENDENCIES std_msgs sensor_msgs
  )
 
